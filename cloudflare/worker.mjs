@@ -15,15 +15,17 @@ export default {async fetch(request,env){
    if(Number(request.headers.get("content-length")||0)>16384)return reply({error:"Payload muito grande"},413,cors);
    let body;try{body=await request.json()}catch{return reply({error:"JSON inválido"},400,cors)}
    if(!body||!Array.isArray(body.rows)||body.rows.length!==2)return reply({error:"Esperados WIN e IND"},400,cors);
+   const mode=body.mode==="TESTE"?"TESTE":"REAL";
+   if(body.mode!==undefined&&!["TESTE","REAL"].includes(body.mode))return reply({error:"Modo inválido"},400,cors);
    const rows={};
    for(const row of body.rows){
      if(!row||!["WIN","IND"].includes(row.symbol)||rows[row.symbol])return reply({error:"Ativo inválido"},400,cors);
      if(typeof row.contract!=="string"||!/^(WIN|IND)[FGHJKMNQUVXZ][0-9]{2}$/.test(row.contract)||!row.contract.startsWith(row.symbol))return reply({error:"Contrato inválido"},400,cors);
      if(typeof row.capturedAt!=="string"||!Number.isFinite(Date.parse(row.capturedAt))||Math.abs(Date.now()-Date.parse(row.capturedAt))>120000)return reply({error:"Captura fora da janela"},422,cors);
      if(typeof row.marketTime!=="string"||!/^\d{2}:\d{2}:\d{2}$/.test(row.marketTime))return reply({error:"Horário inválido"},400,cors);
-     rows[row.symbol]={symbol:row.symbol,contract:row.contract,capturedAt:row.capturedAt,marketTime:row.marketTime,last:safe(row.last),previousClose:safe(row.previousClose),indicative:safe(row.indicative),theoreticalVolume:safe(row.theoreticalVolume),offerSell:safe(row.offerSell)};
+     rows[row.symbol]={symbol:row.symbol,contract:row.contract,capturedAt:row.capturedAt,sourceCapturedAt:mode==="TESTE"&&typeof row.sourceCapturedAt==="string"?row.sourceCapturedAt:null,marketTime:row.marketTime,last:safe(row.last),previousClose:safe(row.previousClose),indicative:safe(row.indicative),theoreticalVolume:safe(row.theoreticalVolume),offerSell:safe(row.offerSell)};
    }
-   await env.MARKET_KV.put("latest",JSON.stringify({receivedAt:new Date().toISOString(),rows}),{expirationTtl:86400});
+   await env.MARKET_KV.put("latest",JSON.stringify({receivedAt:new Date().toISOString(),mode,rows}),{expirationTtl:86400});
    return reply({ok:true},200,cors);
  }
  if(url.pathname==="/latest"&&request.method==="GET"){
