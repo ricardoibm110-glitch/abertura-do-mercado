@@ -1,96 +1,79 @@
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from "recharts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, ChevronDown, Clock3, Radio, ShieldAlert, TrendingUp, Zap } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Radio, ShieldAlert, TrendingUp } from "lucide-react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from "recharts";
 import { analyzeAuction, type AuctionSnapshot } from "@/lib/auction-analysis";
 
 export const Route = createFileRoute("/")({ component: Index });
-type Asset = "WIN";
 type Scenario = "buy" | "sell" | "neutral";
-const fmt = (n: number, decimals = 0) => n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-const settings = { WIN: { price: 129850, close: 129500, step: 5 } };
-const scenarios: Record<Scenario, [number,number]> = { buy:[18420,6920], sell:[6920,18420], neutral:[12000,12000] };
-function demoHistory(asset: Asset, scenario: Scenario): AuctionSnapshot[] {
-  const cfg = settings[asset];
-  const selected = scenario;
-  const [buy,sell] = scenarios[selected];
-  return Array.from({length: 12}, (_,i)=>({
-    timestamp: 1_000_000 + i*5000,
-    indicative: cfg.price + (i-11) * (selected==="buy" ? cfg.step*2 : selected==="sell" ? -cfg.step*2 : 0),
-    buy: buy + (i%3)*12,
-    sell: sell + (i%4)*8,
-    theoreticalVolume: 6000 + i*100,
+const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+const scenarios: Record<Scenario, [number, number]> = { buy: [18420, 6920], sell: [6920, 18420], neutral: [12000, 12000] };
+function sample(scenario: Scenario): AuctionSnapshot[] {
+  const [buy, sell] = scenarios[scenario];
+  return Array.from({ length: 12 }, (_, i) => ({
+    timestamp: 1000000 + i * 5000,
+    indicative: 129850 + (i - 11) * (scenario === "buy" ? 10 : scenario === "sell" ? -10 : 0),
+    buy: buy + i % 3 * 12, sell: sell + i % 4 * 8,
+    theoreticalVolume: 6000 + i * 100,
   }));
 }
-function Signal({asset,scenario}:{asset:Asset;scenario:Scenario}) {
-  const cfg = settings[asset];
-  const history = useMemo(()=>demoHistory(asset,scenario),[asset,scenario]);
-  const a = useMemo(()=>analyzeAuction(history,cfg.close),[history,cfg.close]);
-  const latest = history[history.length-1];
-  const isBuy = a.direction === "COMPRA";
-  const isSell = a.direction === "VENDA";
-  const tint = isBuy ? "text-emerald-400" : isSell ? "text-rose-400" : "text-amber-300";
-  const surface = isBuy ? "border-emerald-400/35 bg-emerald-400/[.07]" : isSell ? "border-rose-400/35 bg-rose-400/[.07]" : "border-amber-400/35 bg-amber-400/[.07]";
-  const buyShare = latest.buy/(latest.buy+latest.sell)*100;
-  return <section className="min-w-0 overflow-hidden rounded-xl border border-[#24404b] bg-[#08131b] shadow-[0_10px_28px_rgba(0,0,0,.3)]">
-    <div className="flex items-center justify-between border-b border-emerald-400/10 bg-[#0c1c25] px-3 py-2.5">
-      <div className="flex items-center gap-2"><span className="rounded-md border border-emerald-400/25 bg-emerald-400/10 px-2 py-1 text-base font-black">{asset}</span><div><p className="text-xs font-bold">Mini Índice</p><p className="text-[10px] text-slate-500">Leilão · cenário fictício</p></div></div>
-      <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-300">DEMO</span>
-    </div>
-    <div className="grid grid-cols-[1fr_1.12fr] gap-2 px-3 py-2">
-      <div className="min-w-0"><p className="text-[10px] uppercase tracking-wide text-slate-500">Preço teórico</p><p className="mt-1 text-[clamp(1.3rem,2.6vw,2rem)] font-black tabular-nums">{fmt(latest.indicative,0)}</p><p className={`mt-1 text-xs font-bold ${a.gapPoints!==null&&a.gapPoints>=0?"text-emerald-400":"text-rose-400"}`}>Gap {a.gapPoints!==null ? `${a.gapPoints>=0?"+":""}${fmt(a.gapPoints,0)} pts` : "—"}</p>
-        <div className="mt-2 space-y-1 border-t border-white/10 pt-1 text-[11px]"><div className="flex justify-between gap-1"><span className="text-slate-500">Compras</span><b className="text-emerald-400">{fmt(latest.buy)}</b></div><div className="flex justify-between gap-1"><span className="text-slate-500">Vendas</span><b className="text-rose-400">{fmt(latest.sell)}</b></div><div className="flex justify-between gap-1"><span className="text-slate-500">Saldo</span><b>{fmt(latest.buy-latest.sell)}</b></div></div>
-      </div>
-      <div className={`flex min-w-0 flex-col items-center justify-center rounded-lg border p-3 text-center ${surface}`}>
-        {isBuy?<ArrowUpRight className={tint} size={28}/>:isSell?<ArrowDownRight className={tint} size={28}/>:<Activity className={tint} size={28}/>}
-        <p className={`mt-1 text-[clamp(1rem,2vw,1.5rem)] font-black ${tint}`}>{a.direction}</p>
-        <p className={`mt-1 text-xl font-black tabular-nums ${tint}`}>{a.pressurePct===null?"—":`${a.pressurePct>0?"+":""}${fmt(a.pressurePct,1)}%`}</p>
-        <p className="mt-1 text-[10px] text-slate-400">Pressão do book</p>
-        <p className="mt-2 text-[10px] font-bold text-slate-300">{a.confirmationCount}/4 confirmações</p>
-      </div>
-    </div>
-    <div className="px-3 pb-2"><div className="flex h-2 overflow-hidden rounded bg-rose-500"><div className="bg-emerald-400" style={{width:`${buyShare}%`}}/></div><div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>COMPRADORES</span><span>VENDEDORES</span></div></div>
-    <div className="grid grid-cols-3 border-t border-white/10 bg-[#0a1820] text-center text-[10px]"><div className="border-r border-white/10 px-1 py-1"><p className="text-slate-500">Persistência</p><b>{a.persistencePct===null?"—":`${fmt(a.persistencePct)}%`}</b></div><div className="border-r border-white/10 px-1 py-2"><p className="text-slate-500">Preço teórico Δ</p><b>{a.indicativeChange===null?"—":fmt(a.indicativeChange,0)}</b></div><div className="px-1 py-1"><p className="text-slate-500">Estabilidade</p><b>{a.stabilityPct===null?"—":`${fmt(a.stabilityPct)}%`}</b></div></div>
-  </section>;
-}
+const panel = "min-w-0 overflow-hidden rounded-xl border border-[#23404a] bg-[#091720]";
+const panelHeader = "flex items-center justify-between border-b border-white/10 bg-[#0e222b] px-3 py-2";
 function Index() {
-  const [scenario,setScenario] = useState<Scenario>("buy");
-  const asset: Asset = "WIN";
-  const history = useMemo(()=>demoHistory(asset,scenario),[asset,scenario]);
-  const a = useMemo(()=>analyzeAuction(history,settings[asset].close),[history,asset]);
-  const chartData = history.map((h,i)=>({ time: `08:${String(55+Math.floor(i*5/60)).padStart(2,"0")}:${String(i*5%60).padStart(2,"0")}`, pressure: Number(((h.buy-h.sell)/(h.buy+h.sell)*100).toFixed(1)), price: h.indicative }));
-  const reversals = chartData.slice(1).filter((v,i)=>Math.abs(v.pressure)>10 && Math.abs(chartData[i].pressure)>10 && Math.sign(v.pressure)!==Math.sign(chartData[i].pressure)).length;
-  const checks = [
-    ["Pressão do book", a.pressurePct===null?"—":`${a.pressurePct>0?"+":""}${fmt(a.pressurePct,1)}%`],
-    ["Persistência (60s)", a.persistencePct===null?"Sem histórico":`${fmt(a.persistencePct)}%`],
-    ["Variação preço teórico", a.indicativeChange===null?"Sem histórico":`${a.indicativeChange>0?"+":""}${fmt(a.indicativeChange,0)} pts`],
-    ["Estabilidade do preço", a.stabilityPct===null?"Sem histórico":`${fmt(a.stabilityPct)}%`],
+  const [scenario, setScenario] = useState<Scenario>("buy");
+  const history = useMemo(() => sample(scenario), [scenario]);
+  const analysis = useMemo(() => analyzeAuction(history, 129500), [history]);
+  const latest = history[history.length - 1];
+  const isBuy = analysis.direction === "COMPRA";
+  const isSell = analysis.direction === "VENDA";
+  const directionColor = isBuy ? "text-emerald-400" : isSell ? "text-rose-400" : "text-amber-300";
+  const data = history.map((h, i) => ({ time: `08:55:${String(i * 5).padStart(2, "0")}`, pressure: +((h.buy - h.sell) / (h.buy + h.sell) * 100).toFixed(1), price: h.indicative }));
+  const reversals = data.slice(1).filter((v, i) => Math.abs(v.pressure) > 10 && Math.abs(data[i].pressure) > 10 && Math.sign(v.pressure) !== Math.sign(data[i].pressure)).length;
+  const metrics = [
+    ["Persistência", analysis.persistencePct === null ? "—" : `${fmt(analysis.persistencePct)}%`],
+    ["Preço teórico Δ", analysis.indicativeChange === null ? "—" : `${fmt(analysis.indicativeChange)} pts`],
+    ["Estabilidade", analysis.stabilityPct === null ? "—" : `${fmt(analysis.stabilityPct)}%`],
+    ["Reversões", String(reversals)],
   ];
-  return <div className="min-h-dvh bg-[#03090f] text-slate-100 [background-image:radial-gradient(ellipse_70%_40%_at_50%_-20%,rgba(16,185,129,.12),transparent)]">
-    <header className="border-b border-emerald-400/15 bg-[#07121b]"><div className="mx-auto flex max-w-[1800px] items-center justify-between gap-3 px-4 py-3"><div className="flex items-center gap-2.5"><span className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-2 text-emerald-400"><Activity size={18}/></span><div><p className="font-black tracking-tight">ABERTURA<span className="text-emerald-400">.</span></p><p className="text-[9px] tracking-[.17em] text-slate-500">DECISION TERMINAL</p></div></div><span className="flex items-center gap-1.5 text-[10px] font-bold text-amber-300"><Radio size={13}/> SEM FEED AO VIVO</span></div></header>
-    <main className="mx-auto flex max-w-[1800px] flex-col gap-3 px-4 py-3  xl:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-2"><div><h1 className="text-base font-black md:text-lg">Inteligência de pré-abertura <span className="font-normal text-slate-500">/ Mini Índice WIN</span></h1><p className="text-[11px] text-slate-500">Exclusivo WIN · Direção orientativa antes da abertura · ordens executadas no Profit</p></div><label className="flex items-center gap-2 text-xs text-slate-400">Demonstração<select value={scenario} onChange={e=>setScenario(e.target.value as Scenario)} className="rounded-md border border-white/15 bg-[#152632] px-2 py-1.5 text-xs text-white"><option value="buy">Pressão compradora</option><option value="sell">Pressão vendedora</option><option value="neutral">Mercado neutro</option></select></label></div>
-      <div className="flex items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[.06] px-3 py-1.5 text-[11px] text-amber-200"><ShieldAlert size={14} className="shrink-0"/> Dados 100% simulados. Os sinais não representam recomendações reais nem probabilidades calibradas.</div>
-      <div className="grid gap-3 lg:grid-cols-[minmax(340px,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-3">
-          <Signal asset="WIN" scenario={scenario}/>
-          <section className="overflow-hidden rounded-xl border border-[#24404b] bg-[#08131b]"><div className="flex items-center justify-between border-b border-emerald-400/15 bg-[#0c1c25] px-3 py-2"><h2 className="flex items-center gap-2 text-xs font-black"><BarChart3 size={15} className="text-emerald-400"/> Confirmações do leilão</h2><span className="rounded bg-emerald-400/10 px-2 py-1 text-[10px] font-black text-emerald-400">WIN</span></div><div className="grid grid-cols-2 gap-x-3">{checks.map(([name,value])=><div key={name} className="flex items-center justify-between gap-2 px-2 py-1.5 text-[11px]"><span className="text-slate-400">{name}</span><strong>{value}</strong></div>)}</div><div className="border-t border-white/10 px-3 py-2 text-[11px] text-amber-300">{a.direction==="AGUARDAR"?a.reasons.join(" · "):"Critérios demonstrativos de direção atendidos"}</div></section>
-          <section className="overflow-hidden rounded-xl border border-[#24404b] bg-[#08131b]"><div className="flex items-center justify-between border-b border-emerald-400/15 bg-[#0c1c25] px-3 py-2.5"><h2 className="flex items-center gap-2 text-xs font-black"><TrendingUp size={15} className="text-emerald-400"/> Potencial de movimento · {asset}</h2><span className="text-[10px] text-slate-500">Pendente de histórico</span></div><div className="grid grid-cols-2 gap-2 p-3"><div className="rounded-lg border border-emerald-400/20 bg-emerald-400/[.05] p-3"><p className="text-[10px] text-slate-400">Potencial de alta</p><p className="mt-1 text-lg font-black text-emerald-400">— pts</p></div><div className="rounded-lg border border-rose-400/20 bg-rose-400/[.05] p-3"><p className="text-[10px] text-slate-400">Potencial de baixa</p><p className="mt-1 text-lg font-black text-rose-400">— pts</p></div></div><div className="space-y-1 px-3 pb-2 text-[11px] text-slate-400"><p>Desvio do gap: <b className="text-slate-200">aguardando distribuição histórica</b></p><p>Alvo antes do stop: <b className="text-slate-200">aguardando backtest 300 × 300</b></p><p className="pt-1 text-[10px] text-amber-300">Não estimamos pontos futuros ou taxa de acerto sem dados históricos.</p></div></section>
+  return <div className="min-h-dvh bg-[#040c12] text-slate-100">
+    <header className="border-b border-emerald-400/15 bg-[#08151c]"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-4 py-2">
+      <div className="flex items-center gap-2"><Activity className="text-emerald-400" size={18}/><b className="text-sm tracking-wide">ABERTURA<span className="text-emerald-400">.</span> <span className="font-normal text-slate-500">WIN TERMINAL</span></b></div>
+      <span className="flex items-center gap-1 text-[10px] text-amber-300"><Radio size={12}/> SEM DADOS AO VIVO</span>
+    </div></header>
+    <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-3 lg:px-4">
+      <div className="flex flex-wrap items-center justify-between gap-2"><div><h1 className="text-base font-bold">Pré-abertura · Mini Índice WIN</h1><p className="text-[10px] text-slate-500">Análise de leilão · execução de ordens exclusivamente no Profit</p></div>
+        <label className="flex items-center gap-2 text-[11px] text-slate-400">Cenário demo <select className="rounded-md border border-white/15 bg-[#152632] px-2 py-1 text-white" value={scenario} onChange={e => setScenario(e.target.value as Scenario)}><option value="buy">Comprador</option><option value="sell">Vendedor</option><option value="neutral">Neutro</option></select></label>
       </div>
-        </div>
-        <div className="min-w-0">
-          <section className="overflow-hidden rounded-xl border border-[#24404b] bg-[#08131b]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-400/15 bg-[#0c1c25] px-3 py-2.5"><h2 className="flex items-center gap-2 text-xs font-black"><Activity size={15} className="text-emerald-400"/> Evolução do leilão · WIN</h2><span className="text-[10px] text-amber-300">AMOSTRAS FICTÍCIAS · NÃO É TEMPO REAL</span></div>
-        <div className="grid gap-3 p-3 lg:grid-cols-1">
-          <div className="min-w-0"><p className="mb-2 text-[11px] font-bold text-emerald-300">Pressão compradora / vendedora (%)</p><div className="h-40 w-full lg:h-[min(23vh,210px)]"><ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{top:5,right:8,left:-25,bottom:0}}><CartesianGrid stroke="#23333c" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8796a7",fontSize:10}} interval={3}/><YAxis domain={[-100,100]} tick={{fill:"#8796a7",fontSize:10}}/><Tooltip contentStyle={{background:"#0c1c25",border:"1px solid #24404b",color:"#fff"}}/><ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3"/><Line type="monotone" dataKey="pressure" name="Pressão (%)" stroke="#34d399" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div></div>
-          <div className="min-w-0"><p className="mb-2 text-[11px] font-bold text-sky-300">Preço teórico indicativo (pontos)</p><div className="h-40 w-full lg:h-[min(23vh,210px)]"><ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{top:5,right:8,left:-12,bottom:0}}><CartesianGrid stroke="#23333c" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8796a7",fontSize:10}} interval={3}/><YAxis domain={["auto","auto"]} tick={{fill:"#8796a7",fontSize:10}} tickFormatter={v=>fmt(Number(v))}/><Tooltip contentStyle={{background:"#0c1c25",border:"1px solid #24404b",color:"#fff"}} formatter={v=>fmt(Number(v))}/><Line type="monotone" dataKey="price" name="Preço teórico" stroke="#38bdf8" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div></div>
-        </div>
-        <div className="flex flex-wrap gap-3 border-t border-white/10 px-3 py-2 text-[11px]"><span className="text-slate-400">Reversões de pressão: <b className={reversals>0?"text-amber-300":"text-emerald-400"}>{reversals}</b></span><span className="text-slate-400">Direção do preço: <b className="text-slate-100">{a.indicativeChange===null?"Indisponível":a.indicativeChange>0?"Alta":a.indicativeChange<0?"Baixa":"Estável"}</b></span><span className="text-slate-500">Reversão = mudança entre pressões superiores a 10% em sentidos opostos.</span></div>
-      </section>
-        </div>
+      <div className="flex items-center gap-2 rounded-md border border-amber-400/25 bg-amber-400/5 px-3 py-1.5 text-[10px] text-amber-200"><ShieldAlert size={13}/> Demonstração com números fictícios. Nenhum sinal ou percentual representa desempenho comprovado.</div>
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <section className={panel}>
+          <div className={panelHeader}><b className="text-xs">WIN · Preço indicativo</b><span className="text-[10px] text-amber-300">DEMO</span></div>
+          <div className="flex items-center justify-between gap-2 px-3 py-3"><div><p className="text-[10px] text-slate-500">PREÇO TEÓRICO</p><p className="text-2xl font-black tabular-nums">{fmt(latest.indicative)}</p><p className={`text-xs font-bold ${(analysis.gapPoints ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>Gap {(analysis.gapPoints ?? 0) >= 0 ? "+" : ""}{fmt(analysis.gapPoints ?? 0)} pts</p></div><div className="text-right text-[11px]"><p className="text-emerald-400">Compra {fmt(latest.buy)}</p><p className="text-rose-400">Venda {fmt(latest.sell)}</p><p>Saldo {fmt(latest.buy - latest.sell)}</p></div></div>
+          <div className="px-3 pb-3"><div className="flex h-2 overflow-hidden rounded-full bg-rose-500"><div className="bg-emerald-400" style={{width:`${latest.buy / (latest.buy + latest.sell) * 100}%`}}/></div><div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>COMPRADORES</span><span>VENDEDORES</span></div></div>
+        </section>
+        <section className={panel}>
+          <div className={panelHeader}><b className="text-xs">Direção do leilão</b><span className="text-[10px] text-slate-500">{analysis.confirmationCount}/4 critérios</span></div>
+          <div className="flex h-[145px] flex-col items-center justify-center gap-1 p-3">{isBuy ? <ArrowUpRight size={27} className={directionColor}/> : isSell ? <ArrowDownRight size={27} className={directionColor}/> : <Activity size={27} className={directionColor}/>}<p className={`text-2xl font-black ${directionColor}`}>{analysis.direction}</p><p className={`text-xl font-bold ${directionColor}`}>{analysis.pressurePct === null ? "—" : `${analysis.pressurePct > 0 ? "+" : ""}${fmt(analysis.pressurePct)}%`}</p><p className="text-[10px] text-slate-500">Pressão do book</p></div>
+        </section>
+        <section className={panel}>
+          <div className={panelHeader}><b className="text-xs">Indicadores de confirmação</b><BarChart3 size={14} className="text-emerald-400"/></div>
+          <div className="grid grid-cols-2 gap-2 p-3">{metrics.map(([label,value]) => <div key={label} className="rounded-lg border border-white/10 bg-[#11232c] p-2"><p className="text-[10px] text-slate-500">{label}</p><p className="mt-1 text-sm font-bold">{value}</p></div>)}</div>
+        </section>
       </div>
-      <details className="group hidden shrink-0 overflow-hidden lg:block rounded-xl border border-[#24404b] bg-[#08131b]"><summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-300"><span className="flex items-center gap-2"><Clock3 size={14}/> Histórico demonstrativo do leilão · {asset}</span><ChevronDown size={15} className="transition-transform group-open:rotate-180"/></summary><div className="border-t border-white/10 px-3 pb-2"><div className="grid grid-cols-4 gap-2 py-2 text-right text-[10px] text-slate-500"><span>AMOSTRA</span><span>TEÓRICO</span><span>COMPRA</span><span>VENDA</span></div>{history.slice(-6).map((s,i)=><div key={s.timestamp} className="grid grid-cols-4 gap-2 border-t border-white/5 py-1.5 text-right text-xs tabular-nums"><span className="text-slate-500">{i+7}</span><span>{fmt(s.indicative,0)}</span><span className="text-emerald-400">{fmt(s.buy)}</span><span className="text-rose-400">{fmt(s.sell)}</span></div>)}</div></details>
-      <p className="hidden items-start gap-2 text-[10px] text-slate-500"><Zap size={13} className="shrink-0 text-amber-400"/> O motor já calcula persistência, divergência e estabilidade de snapshots. Para uso operacional, falta conectar dados autorizados do leilão, validar horários reais e calibrar os filtros com backtest. O Profit permanece responsável pelas ordens.</p>
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className={panel}>
+          <div className={panelHeader}><b className="flex items-center gap-2 text-xs"><Activity size={14} className="text-emerald-400"/> Evolução da pressão</b><span className="text-[10px] text-amber-300">SIMULADO</span></div>
+          <div className="h-[205px] min-w-0 px-2 py-3"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:5,right:8,bottom:0,left:-22}}><CartesianGrid stroke="#213540" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8296a5",fontSize:9}} interval={3}/><YAxis domain={[-100,100]} tick={{fill:"#8296a5",fontSize:9}}/><Tooltip contentStyle={{background:"#10232d",border:"1px solid #34505c"}}/><ReferenceLine y={0} stroke="#7c8a98"/><Line name="Pressão %" dataKey="pressure" type="monotone" stroke="#34d399" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div>
+        </section>
+        <section className={panel}>
+          <div className={panelHeader}><b className="flex items-center gap-2 text-xs"><TrendingUp size={14} className="text-sky-400"/> Evolução do preço teórico</b><span className="text-[10px] text-amber-300">SIMULADO</span></div>
+          <div className="h-[205px] min-w-0 px-2 py-3"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:5,right:8,bottom:0,left:-5}}><CartesianGrid stroke="#213540" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8296a5",fontSize:9}} interval={3}/><YAxis domain={["auto","auto"]} tick={{fill:"#8296a5",fontSize:9}} tickFormatter={v=>fmt(Number(v))}/><Tooltip contentStyle={{background:"#10232d",border:"1px solid #34505c"}} formatter={v=>fmt(Number(v))}/><Line name="Preço teórico" dataKey="price" type="monotone" stroke="#38bdf8" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div>
+        </section>
+      </div>
+      <div className="grid gap-2 lg:grid-cols-2">
+        <section className={panel}><div className={panelHeader}><b className="text-xs">Potencial de movimento</b><span className="text-[10px] text-slate-500">Sem histórico real</span></div><div className="grid grid-cols-2 gap-2 p-3"><div className="rounded-md bg-emerald-400/5 p-2"><p className="text-[10px] text-slate-500">Alta estimada</p><b className="text-emerald-400">— pts</b></div><div className="rounded-md bg-rose-400/5 p-2"><p className="text-[10px] text-slate-500">Baixa estimada</p><b className="text-rose-400">— pts</b></div></div></section>
+        <section className={panel}><div className={panelHeader}><b className="text-xs">Validação histórica · 300 × 300</b><span className="text-[10px] text-slate-500">Aguardando dados</span></div><div className="px-3 py-3 text-[11px] text-slate-400">Probabilidade de alvo antes do stop: <b className="text-white">indisponível</b><p className="mt-1 text-[10px] text-amber-300">Não calculamos acerto ou pontos futuros sem backtest.</p></div></section>
+      </div>
     </main>
   </div>;
 }
