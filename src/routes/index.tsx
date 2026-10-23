@@ -40,30 +40,33 @@ function Index() {
       <div className="flex items-center gap-2"><Activity className="text-emerald-400" size={18}/><b className="text-sm tracking-wide">ABERTURA<span className="text-emerald-400">.</span> <span className="font-normal text-slate-500">WIN TERMINAL</span></b></div>
       <span className="flex items-center gap-1 text-[10px] text-amber-300"><Radio size={12}/> SEM DADOS AO VIVO</span>
     </div></header>
-    <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-3 lg:px-4">
+    <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-2 lg:px-4">
       <div className="flex flex-wrap items-center justify-between gap-2"><div><h1 className="text-base font-bold">Pré-abertura · Mini Índice WIN</h1><p className="text-[10px] text-slate-500">Análise de leilão · execução de ordens exclusivamente no Profit</p></div>
         <label className="flex items-center gap-2 text-[11px] text-slate-400">Cenário demo <select className="rounded-md border border-white/15 bg-[#152632] px-2 py-1 text-white" value={scenario} onChange={e => setScenario(e.target.value as Scenario)}><option value="buy">Comprador</option><option value="sell">Vendedor</option><option value="neutral">Neutro</option></select></label>
       </div>
       <div className="flex items-center gap-2 rounded-md border border-amber-400/25 bg-amber-400/5 px-3 py-1.5 text-[10px] text-amber-200"><ShieldAlert size={13}/> Demonstração com números fictícios. Nenhum sinal ou percentual representa desempenho comprovado.</div>
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid gap-2 lg:grid-cols-3">
         <section className={panel}>
           <div className={panelHeader}><b className="text-xs">WIN · Preço indicativo</b><span className="text-[10px] text-amber-300">DEMO</span></div>
-          <div className="flex items-center justify-between gap-2 px-3 py-3"><div><p className="text-[10px] text-slate-500">PREÇO TEÓRICO</p><p className="text-2xl font-black tabular-nums">{fmt(latest.indicative)}</p><p className={`text-xs font-bold ${(analysis.gapPoints ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>Gap {(analysis.gapPoints ?? 0) >= 0 ? "+" : ""}{fmt(analysis.gapPoints ?? 0)} pts</p></div><div className="text-right text-[11px]"><p className="text-emerald-400">Compra {fmt(latest.buy)}</p><p className="text-rose-400">Venda {fmt(latest.sell)}</p><p>Saldo {fmt(latest.buy - latest.sell)}</p></div></div>
-          <div className="px-3 pb-3"><div className="flex h-2 overflow-hidden rounded-full bg-rose-500"><div className="bg-emerald-400" style={{width:`${latest.buy / (latest.buy + latest.sell) * 100}%`}}/></div><div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>COMPRADORES</span><span>VENDEDORES</span></div></div>
+          <div className="flex items-center justify-between gap-2 px-3 py-3">
+            <div><p className="text-[10px] text-slate-500">PREÇO TEÓRICO</p><p className="text-2xl font-black tabular-nums">{fmt(latest.indicative)}</p><p className={`text-xs font-bold ${(analysis.gapPoints ?? 0)>=0?"text-emerald-400":"text-rose-400"}`}>Gap {(analysis.gapPoints??0)>=0?"+":""}{fmt(analysis.gapPoints??0)} pts</p></div>
+            <div className="text-right text-[11px]"><p className="text-emerald-400">Compra {fmt(latest.buy)}</p><p className="text-rose-400">Venda {fmt(latest.sell)}</p><p>Saldo {fmt(latest.buy-latest.sell)}</p></div>
+          </div>
+          <div className="px-3 pb-3"><div className="flex h-2 overflow-hidden rounded-full bg-rose-500"><div className="bg-emerald-400" style={{width:`${latest.buy/(latest.buy+latest.sell)*100}%`}}/></div><div className="mt-1 flex justify-between text-[9px] text-slate-500"><span>COMPRADORES</span><span>VENDEDORES</span></div></div>
+        </section>
+        <section className={`${panel} ${isBuy?"border-emerald-500/40":isSell?"border-rose-500/40":"border-amber-500/40"}`}>
+          <div className={panelHeader}><b className="text-xs">DIREÇÃO INDICADA</b><span className="text-[10px] text-slate-400">{analysis.confirmationCount}/4 confirmações</span></div>
+          <div className="flex h-[135px] flex-col items-center justify-center gap-1">{isBuy?<ArrowUpRight className={directionColor} size={26}/>:isSell?<ArrowDownRight className={directionColor} size={26}/>:<Activity className={directionColor} size={26}/>}<p className={`text-2xl font-black ${directionColor}`}>{analysis.direction}</p><p className={`text-lg font-bold ${directionColor}`}>{analysis.pressurePct===null?"—":`${analysis.pressurePct>0?"+":""}${fmt(analysis.pressurePct)}%`}</p><p className="text-[10px] text-slate-500">Pressão do book</p></div>
         </section>
         <section className={panel}>
-          <div className={panelHeader}><b className="text-xs">Direção do leilão</b><span className="text-[10px] text-slate-500">{analysis.confirmationCount}/4 critérios</span></div>
-          <div className="flex h-[145px] flex-col items-center justify-center gap-1 p-3">{isBuy ? <ArrowUpRight size={27} className={directionColor}/> : isSell ? <ArrowDownRight size={27} className={directionColor}/> : <Activity size={27} className={directionColor}/>}<p className={`text-2xl font-black ${directionColor}`}>{analysis.direction}</p><p className={`text-xl font-bold ${directionColor}`}>{analysis.pressurePct === null ? "—" : `${analysis.pressurePct > 0 ? "+" : ""}${fmt(analysis.pressurePct)}%`}</p><p className="text-[10px] text-slate-500">Pressão do book</p></div>
-        </section>
-        <section className={panel}>
-          <div className={panelHeader}><b className="text-xs">Indicadores de confirmação</b><BarChart3 size={14} className="text-emerald-400"/></div>
-          <div className="grid grid-cols-2 gap-2 p-3">{metrics.map(([label,value]) => <div key={label} className="rounded-lg border border-white/10 bg-[#11232c] p-2"><p className="text-[10px] text-slate-500">{label}</p><p className="mt-1 text-sm font-bold">{value}</p></div>)}</div>
+          <div className={panelHeader}><b className="text-xs">Confirmações do leilão</b><BarChart3 size={14} className="text-emerald-400"/></div>
+          <div className="grid grid-cols-2 gap-2 p-3">{metrics.map(([label,value])=><div key={label} className="rounded-lg border border-white/10 bg-[#11232c] p-2"><p className="text-[10px] text-slate-500">{label}</p><p className="mt-1 text-sm font-bold">{value}</p></div>)}</div>
         </section>
       </div>
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className={panel}>
           <div className={panelHeader}><b className="flex items-center gap-2 text-xs"><Activity size={14} className="text-emerald-400"/> Evolução da pressão</b><span className="text-[10px] text-amber-300">SIMULADO</span></div>
-          <div className="h-[205px] min-w-0 px-2 py-3"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:5,right:8,bottom:0,left:-22}}><CartesianGrid stroke="#213540" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8296a5",fontSize:9}} interval={3}/><YAxis domain={[-100,100]} tick={{fill:"#8296a5",fontSize:9}}/><Tooltip contentStyle={{background:"#10232d",border:"1px solid #34505c"}}/><ReferenceLine y={0} stroke="#7c8a98"/><Line name="Pressão %" dataKey="pressure" type="monotone" stroke="#34d399" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div>
+          <div className="h-[185px] min-w-0 px-2 py-2"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:5,right:8,bottom:0,left:-22}}><CartesianGrid stroke="#213540" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8296a5",fontSize:9}} interval={3}/><YAxis domain={[-100,100]} tick={{fill:"#8296a5",fontSize:9}}/><Tooltip contentStyle={{background:"#10232d",border:"1px solid #34505c"}}/><ReferenceLine y={0} stroke="#7c8a98"/><Line name="Pressão %" dataKey="pressure" type="monotone" stroke="#34d399" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div>
         </section>
         <section className={panel}>
           <div className={panelHeader}><b className="flex items-center gap-2 text-xs"><TrendingUp size={14} className="text-sky-400"/> Evolução do preço teórico</b><span className="text-[10px] text-amber-300">SIMULADO</span></div>
