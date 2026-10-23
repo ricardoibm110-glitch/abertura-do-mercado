@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Radio, ShieldAlert, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from "recharts";
 import { analyzeAuction, type AuctionSnapshot } from "@/lib/auction-analysis";
+import { LiveMarketPanel } from "@/components/live-market-panel";
 
 export const Route = createFileRoute("/")({ component: Index });
 type Scenario = "buy" | "sell" | "neutral";
@@ -56,6 +57,7 @@ function Index() {
         <label className="flex items-center gap-2 text-[11px] text-slate-400">Cenário demo <select className="rounded-md border border-white/15 bg-[#152632] px-2 py-1 text-white" value={scenario} onChange={e => setScenario(e.target.value as Scenario)}><option value="buy">Comprador</option><option value="sell">Vendedor</option><option value="neutral">Neutro</option></select></label>
       </div>
       <div className="flex items-center gap-2 rounded-md border border-amber-400/25 bg-amber-400/5 px-3 py-1.5 text-[10px] text-amber-200"><ShieldAlert size={13}/> Demonstração com números fictícios. Nenhum sinal ou percentual representa desempenho comprovado.</div>
+      <LiveMarketPanel />
       <div className="grid gap-2 lg:grid-cols-3">
         <section className={panel}>
           <div className={panelHeader}><b className="text-xs">WIN · Preço indicativo</b><span className="text-[10px] text-amber-300">DEMO</span></div>
