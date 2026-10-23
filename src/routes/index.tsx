@@ -29,6 +29,17 @@ function Index() {
   const directionColor = isBuy ? "text-emerald-400" : isSell ? "text-rose-400" : "text-amber-300";
   const data = history.map((h, i) => ({ time: `08:55:${String(i * 5).padStart(2, "0")}`, pressure: +((h.buy - h.sell) / (h.buy + h.sell) * 100).toFixed(1), price: h.indicative }));
   const reversals = data.slice(1).filter((v, i) => Math.abs(v.pressure) > 10 && Math.abs(data[i].pressure) > 10 && Math.sign(v.pressure) !== Math.sign(data[i].pressure)).length;
+  const confirmations = [
+    { label: "Pressão predominante", valid: analysis.pressurePct !== null, positive: Math.abs(analysis.pressurePct ?? 0) >= 25 },
+    { label: "Persistência", valid: analysis.persistencePct !== null, positive: (analysis.persistencePct ?? 0) >= 70 },
+    { label: "Preço teórico alinhado", valid: analysis.indicativeChange !== null && analysis.pressurePct !== null, positive: Math.sign(analysis.indicativeChange ?? 0) === Math.sign(analysis.pressurePct ?? 0) && analysis.indicativeChange !== 0 },
+    { label: "Volume teórico crescente", valid: latest.theoreticalVolume !== undefined && history[0].theoreticalVolume !== undefined, positive: (latest.theoreticalVolume ?? 0) > (history[0].theoreticalVolume ?? 0) },
+    { label: "Sem reversão recente", valid: history.length >= 5, positive: reversals === 0 },
+    { label: "Gap dentro do histórico", valid: false, positive: false },
+    { label: "Ordens e cancelamentos", valid: false, positive: false },
+    { label: "Confirmação IND", valid: false, positive: false },
+    { label: "Backtest 300 × 300", valid: false, positive: false },
+  ];
   const metrics = [
     ["Persistência", analysis.persistencePct === null ? "—" : `${fmt(analysis.persistencePct)}%`],
     ["Preço teórico Δ", analysis.indicativeChange === null ? "—" : `${fmt(analysis.indicativeChange)} pts`],
@@ -73,6 +84,16 @@ function Index() {
           <div className="h-[205px] min-w-0 px-2 py-3"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{top:5,right:8,bottom:0,left:-5}}><CartesianGrid stroke="#213540" strokeDasharray="3 4"/><XAxis dataKey="time" tick={{fill:"#8296a5",fontSize:9}} interval={3}/><YAxis domain={["auto","auto"]} tick={{fill:"#8296a5",fontSize:9}} tickFormatter={v=>fmt(Number(v))}/><Tooltip contentStyle={{background:"#10232d",border:"1px solid #34505c"}} formatter={v=>fmt(Number(v))}/><Line name="Preço teórico" dataKey="price" type="monotone" stroke="#38bdf8" strokeWidth={2.5} dot={false} isAnimationActive={false}/></LineChart></ResponsiveContainer></div>
         </section>
       </div>
+      <section className={panel}>
+        <div className={panelHeader}><b className="text-xs">Confirmação inteligente · WIN</b><span className="text-[10px] text-amber-300">DEMONSTRAÇÃO</span></div>
+        <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+          {confirmations.map(item => <div key={item.label} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#11232c] px-2 py-2">
+            <span className="text-[11px] text-slate-300">{item.label}</span>
+            <span className={item.valid ? item.positive ? "shrink-0 text-[10px] font-bold text-emerald-400" : "shrink-0 text-[10px] font-bold text-rose-400" : "shrink-0 text-[10px] text-slate-500"}>{!item.valid ? "SEM DADOS" : item.positive ? "CONFIRMA" : "CONTRÁRIO"}</span>
+          </div>)}
+        </div>
+        <p className="border-t border-white/10 px-3 py-2 text-[10px] text-slate-400">Sem dados não conta como confirmação. Critérios demonstrativos, ainda não calibrados por backtest.</p>
+      </section>
       <div className="grid gap-2 lg:grid-cols-2">
         <section className={panel}><div className={panelHeader}><b className="text-xs">Potencial de movimento</b><span className="text-[10px] text-slate-500">Sem histórico real</span></div><div className="grid grid-cols-2 gap-2 p-3"><div className="rounded-md bg-emerald-400/5 p-2"><p className="text-[10px] text-slate-500">Alta estimada</p><b className="text-emerald-400">— pts</b></div><div className="rounded-md bg-rose-400/5 p-2"><p className="text-[10px] text-slate-500">Baixa estimada</p><b className="text-rose-400">— pts</b></div></div></section>
         <section className={panel}><div className={panelHeader}><b className="text-xs">Validação histórica · 300 × 300</b><span className="text-[10px] text-slate-500">Aguardando dados</span></div><div className="px-3 py-3 text-[11px] text-slate-400">Probabilidade de alvo antes do stop: <b className="text-white">indisponível</b><p className="mt-1 text-[10px] text-amber-300">Não calculamos acerto ou pontos futuros sem backtest.</p></div></section>
