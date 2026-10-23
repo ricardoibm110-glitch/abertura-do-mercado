@@ -6,6 +6,9 @@
 - `src/components/live-market-panel.tsx`: mostra WIN/IND no celular, busca a cada 5 segundos e avisa quando a captura está atrasada.
 - Nenhum módulo executa ordens. Sinais demonstrativos continuam separados dos dados reais.
 
+## Configuração simples (uso pessoal)
+Não é necessário criar usuários ou configurar login. Basta manter dois segredos: uma chave de envio no computador e uma chave de leitura para abrir o painel no celular. Você pode compartilhar somente a chave de leitura com pessoas de confiança. Não publique nenhuma chave no GitHub.
+
 ## Implantar backend (Cloudflare)
 1. Crie uma conta Cloudflare, instale Node.js e rode `npx wrangler login`.
 2. Crie o namespace KV: `npx wrangler kv namespace create MARKET_KV` e copie o ID.
@@ -24,7 +27,7 @@ id = "COLE_O_ID_DO_KV"
 ALLOWED_ORIGIN = "https://SEU-DOMINIO-LOVABLE"
 ```
 4. Em `cloudflare`, execute `npx wrangler secret put INGEST_TOKEN` e `npx wrangler secret put VIEW_TOKEN`. Use dois tokens aleatórios **diferentes**, com pelo menos 32 caracteres. Nunca publique os tokens no GitHub.
-5. Execute `npx wrangler deploy`. Anote a URL HTTPS do Worker.
+5. Execute `npx wrangler deploy`. Anote a URL HTTPS do Worker. Essa é a única implantação do servidor necessária.
 6. No deploy do frontend (Lovable/Vite), configure `VITE_MARKET_API_URL` com a URL HTTPS do Worker e publique novamente. **Não** coloque tokens em variáveis VITE, pois ficam públicas no JavaScript.
 
 ## Iniciar a ponte no Windows
@@ -36,7 +39,7 @@ $env:PROFIT_API_URL="https://SEU-WORKER.workers.dev"
 $env:PROFIT_INGEST_TOKEN="SEU_TOKEN_DE_ENVIO"
 py bridge_online.py
 ```
-4. No dashboard, digite o token de visualização (VIEW_TOKEN) e clique Conectar. O token permanece apenas em memória na página e é apagado ao atualizar.
+4. No dashboard, digite a chave de leitura (VIEW_TOKEN) e clique Conectar. A chave permanece apenas em memória na página e é apagada ao atualizar. Para alguém de confiança visualizar, compartilhe apenas a chave de leitura, nunca a chave de envio.
 
 ## Segurança e limites
 - O endpoint de leitura exige VIEW_TOKEN; o de escrita exige INGEST_TOKEN. O CORS permite apenas o domínio configurado, mas **CORS não substitui autenticação**.
