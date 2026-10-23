@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 type Row = {symbol:string;contract:string;capturedAt:string;marketTime:string;last:number|null;previousClose:number|null;indicative:number|null;theoreticalVolume:number|null;offerSell:number|null};
-type Payload = {receivedAt:string|null;rows:Record<string,Row>};
+type Payload = {receivedAt:string|null;mode?:"REAL"|"TESTE";rows:Record<string,Row>};
 const fmt=(n:number|null|undefined)=>n==null?"—":n.toLocaleString("pt-BR",{maximumFractionDigits:2});
 const endpoint=(import.meta.env.VITE_MARKET_API_URL as string|undefined)?.replace(/\/$/,"");
 export function LiveMarketPanel(){
@@ -29,7 +29,8 @@ export function LiveMarketPanel(){
  const win=state?.rows?.WIN;
  const ind=state?.rows?.IND;
  const valid=(row:Row|undefined)=>Boolean(row&&Date.now()-Date.parse(row.capturedAt)<15000);
- const status=!connected?"DESLIGADO":error?"ERRO":!fresh?"DADOS ATRASADOS":"CONECTADO";
+ const isTest=state?.mode==="TESTE";
+ const status=!connected?"DESLIGADO":error?"ERRO":!fresh?"DADOS ATRASADOS":isTest?"TESTE HISTÓRICO":"CONECTADO";
  return <section className="min-w-0 overflow-hidden rounded-xl border border-sky-500/30 bg-[#091720]">
    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0e222b] px-3 py-2">
      <b className="text-xs">Conexão Profit · WIN + IND</b>
@@ -40,10 +41,11 @@ export function LiveMarketPanel(){
        <input type="password" autoComplete="off" placeholder="Chave privada de visualização" aria-label="Chave privada de visualização" value={token} onChange={e=>{setToken(e.target.value);setConnected(false);setState(null)}} className="min-w-0 flex-1 rounded-md border border-white/20 bg-[#10232d] px-2 py-1.5 text-xs" />
        <button type="button" onClick={()=>setConnected(v=>!v)} disabled={!token} className="rounded-md bg-sky-700 px-3 py-1.5 text-xs font-bold disabled:opacity-50">{connected?"Desconectar":"Conectar"}</button>
      </div>
+     {isTest&&<p className="mx-3 mb-2 rounded-md border border-amber-400/40 bg-amber-400/10 p-2 text-xs font-bold text-amber-300">MODO TESTE · COTAÇÕES HISTÓRICAS · NÃO SÃO DADOS AO VIVO</p>}
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
        {[win,ind].map((row,i)=><div key={i} className="rounded-lg border border-white/10 bg-[#11232c] p-3">
-         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={valid(row)&&fresh?"text-emerald-400":"text-amber-300"}>{valid(row)&&fresh?"RECEBENDO":"SEM DADOS ATUAIS"}</span></div>
+         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={valid(row)&&fresh?"text-emerald-400":"text-amber-300"}>{valid(row)&&fresh?(isTest?"HISTÓRICO":"RECEBENDO"):"SEM DADOS ATUAIS"}</span></div>
          <p className="mt-2 text-xl font-bold">{fresh&&valid(row)?fmt(row?.last):"—"}</p>
          <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400"><span>Teórico: {fresh&&valid(row)?fmt(row?.indicative):"—"}</span><span>Qtd. teórica: {fresh&&valid(row)?fmt(row?.theoreticalVolume):"—"}</span><span>Fechamento: {fresh&&valid(row)?fmt(row?.previousClose):"—"}</span><span>Hora feed: {fresh&&valid(row)?row?.marketTime:"—"}</span></div>
        </div>)}
