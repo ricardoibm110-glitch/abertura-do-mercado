@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 type Row = {symbol:string;contract:string;capturedAt:string;marketTime:string;last:number|null;previousClose:number|null;indicative:number|null;theoreticalVolume:number|null;offerSell:number|null};
 type Payload = {receivedAt:string|null;mode?:"REAL"|"TESTE";rows:Record<string,Row>};
 const fmt=(n:number|null|undefined)=>n==null?"—":n.toLocaleString("pt-BR",{maximumFractionDigits:2});
-const endpoint=(import.meta.env.VITE_MARKET_API_URL as string|undefined)?.replace(/\/$/,"");
+// Endereço público da API; as chaves privadas nunca são incluídas no código.
+const endpoint="https://win-market-bridge.ricardoibm110.workers.dev";
 export function LiveMarketPanel(){
  const [token,setToken]=useState("");
  const [connected,setConnected]=useState(false);
