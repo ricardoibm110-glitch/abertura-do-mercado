@@ -44,7 +44,7 @@ for sym in ("WIN","IND"):
         "theoreticalVolume":quantity if quantity and quantity>0 else None,
         "offerSell":num(r.get("oferta_venda"))})
 body=json.dumps({"mode":"TESTE","rows":rows}).encode()
-request=urllib.request.Request(url+"/ingest",data=body,headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"},method="POST")
+request=urllib.request.Request(url+"/ingest",data=body,headers={"Authorization":"Bearer "+token,"Content-Type":"application/json","User-Agent":"Mozilla/5.0"},method="POST")
 try:
     with urllib.request.urlopen(request,timeout=15) as response:
         print("HTTP",response.status,response.read().decode())
