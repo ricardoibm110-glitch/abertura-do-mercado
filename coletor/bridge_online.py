@@ -21,7 +21,7 @@ if len(TOKEN) < 24:
 
 def number(value):
     try:
-        x = float(value)
+        x = float(str(value).replace(",", "."))
         return x if x == x and abs(x) != float("inf") else None
     except (TypeError, ValueError):
         return None
@@ -40,7 +40,9 @@ def load_rows():
         tail = f.read().decode("utf-8-sig", errors="replace")
     lines = tail.splitlines()
     if size > 65536:
-        lines = lines[1:]
+        lines = lines[1:]  # descarta a primeira linha possivelmente incompleta
+    else:
+        lines = lines[1:]  # cabeçalho já está na variável header
     rows = list(csv.DictReader([header] + lines, delimiter=";"))
     last = {}
     for row in rows:
@@ -78,7 +80,7 @@ def main():
         try:
             rows = load_rows()
             if rows:
-                payload = json.dumps({"rows": rows}, separators=(",", ":")).encode()
+                payload = json.dumps({"mode": "REAL", "rows": rows}, separators=(",", ":")).encode()
                 if payload != last_payload:
                     req = urllib.request.Request(URL + "/ingest", data=payload, headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}, method="POST")
                     with urllib.request.urlopen(req, timeout=10) as response:
