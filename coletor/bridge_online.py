@@ -80,7 +80,7 @@ def main():
             if rows:
                 payload = json.dumps({"rows": rows}, separators=(",", ":")).encode()
                 if payload != last_payload:
-                    req = urllib.request.Request(URL + "/ingest", data=payload, headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json"}, method="POST")
+                    req = urllib.request.Request(URL + "/ingest", data=payload, headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}, method="POST")
                     with urllib.request.urlopen(req, timeout=10) as response:
                         if response.status != 200:
                             raise RuntimeError("HTTP " + str(response.status))
