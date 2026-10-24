@@ -31,11 +31,12 @@ export function LiveMarketPanel(){
  const ind=state?.rows?.IND;
  const valid=(row:Row|undefined)=>Boolean(row&&Date.now()-Date.parse(row.capturedAt)<15000);
  const isTest=state?.mode==="TESTE";
- const status=!connected?"DESLIGADO":error?"ERRO":!fresh?"DADOS ATRASADOS":isTest?"TESTE HISTÓRICO":"CONECTADO";
+ const status=!connected?"DESLIGADO":error?"ERRO":isTest?"TESTE HISTÓRICO":!fresh?"DADOS ATRASADOS":"CONECTADO";
+ const showRow=(row:Row|undefined)=>Boolean(row&&(isTest||fresh&&valid(row)));
  return <section className="min-w-0 overflow-hidden rounded-xl border border-sky-500/30 bg-[#091720]">
    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0e222b] px-3 py-2">
      <b className="text-xs">Conexão Profit · WIN + IND</b>
-     <span className={`text-[10px] font-bold ${fresh&&!error?"text-emerald-400":"text-amber-300"}`}>{status}</span>
+     <span className={`text-[10px] font-bold ${fresh&&!error&&!isTest?"text-emerald-400":"text-amber-300"}`}>{status}</span>
    </div>
    {!endpoint?<p className="px-3 py-3 text-xs text-amber-300">Servidor ainda não configurado. Defina VITE_MARKET_API_URL no deploy do site.</p>:<>
      <div className="flex flex-wrap gap-2 p-3">
@@ -46,9 +47,9 @@ export function LiveMarketPanel(){
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
        {[win,ind].map((row,i)=><div key={i} className="rounded-lg border border-white/10 bg-[#11232c] p-3">
-         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={valid(row)&&fresh?"text-emerald-400":"text-amber-300"}>{valid(row)&&fresh?(isTest?"HISTÓRICO":"RECEBENDO"):"SEM DADOS ATUAIS"}</span></div>
-         <p className="mt-2 text-xl font-bold">{fresh&&valid(row)?fmt(row?.last):"—"}</p>
-         <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400"><span>Teórico: {fresh&&valid(row)?fmt(row?.indicative):"—"}</span><span>Qtd. teórica: {fresh&&valid(row)?fmt(row?.theoreticalVolume):"—"}</span><span>Fechamento: {fresh&&valid(row)?fmt(row?.previousClose):"—"}</span><span>Hora feed: {fresh&&valid(row)?row?.marketTime:"—"}</span></div>
+         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={showRow(row)?"text-emerald-400":"text-amber-300"}>{showRow(row)?(isTest?"HISTÓRICO":"RECEBENDO"):"SEM DADOS ATUAIS"}</span></div>
+         <p className="mt-2 text-xl font-bold">{showRow(row)?fmt(row?.last):"—"}</p>
+         <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400"><span>Teórico: {showRow(row)?fmt(row?.indicative):"—"}</span><span>Qtd. teórica: {showRow(row)?fmt(row?.theoreticalVolume):"—"}</span><span>Fechamento: {showRow(row)?fmt(row?.previousClose):"—"}</span><span>Hora feed: {showRow(row)?row?.marketTime:"—"}</span></div>
        </div>)}
      </div>
      <p className="border-t border-white/10 px-3 py-2 text-[10px] text-slate-400">Leitura protegida por chave. Sem book completo, o sistema não calcula pressão real nem gera sinais operacionais a partir deste feed. Não compartilhe a chave.</p>
