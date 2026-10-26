@@ -7,12 +7,25 @@ const endpoint="https://win-market-bridge.ricardoibm110.workers.dev";
 export function LiveMarketPanel(){
  const [state,setState]=useState<Payload|null>(null);
  const [error,setError]=useState("");
+ const [transport,setTransport]=useState<"WebSocket"|"Consulta HTTP">("Consulta HTTP");
  useEffect(()=>{
    if(!endpoint)return;
    let active=true;
    let busy=false;
+   let socket:WebSocket|null=null;
+   let wsLive=false;
+   let retry:ReturnType<typeof setTimeout>|undefined;
+   const connect=()=>{
+     if(!active)return;
+     socket=new WebSocket(endpoint.replace(/^http/,"ws")+"/stream");
+     socket.onopen=()=>{if(active){wsLive=true;setTransport("WebSocket");setError("");}};
+     socket.onmessage=(event)=>{if(!active)return;try{setState(JSON.parse(event.data) as Payload);setError("");}catch{}};
+     socket.onclose=()=>{wsLive=false;if(active){setTransport("Consulta HTTP");retry=setTimeout(connect,3000);}};
+     socket.onerror=()=>socket?.close();
+   };
+   connect();
    const read=async()=>{
-     if(busy)return;
+     if(busy||wsLive)return;
      busy=true;
      try{
        const response=await fetch(endpoint+"/latest",{cache:"no-store"});
@@ -24,7 +37,7 @@ export function LiveMarketPanel(){
    };
    void read();
    const id=setInterval(()=>void read(),500);
-   return()=>{active=false;clearInterval(id)};
+   return()=>{active=false;clearInterval(id);if(retry)clearTimeout(retry);socket?.close()};
  },[]);
  const received=state?.receivedAt?Date.parse(state.receivedAt):0;
  const age=received?Date.now()-received:Infinity;
@@ -42,7 +55,7 @@ export function LiveMarketPanel(){
      <span className={`text-[10px] font-bold ${fresh&&!error&&!isTest?"text-emerald-400":"text-amber-300"}`}>{status}</span>
    </div>
    {!endpoint?<p className="px-3 py-3 text-xs text-amber-300">Servidor ainda não configurado. Defina VITE_MARKET_API_URL no deploy do site.</p>:<>
-     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · consulta a cada 0,5 segundo (sujeita à latência da rede e do servidor).</p>
+     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · {transport==="WebSocket"?"transmissão WebSocket em tempo real":"consulta HTTP a cada 0,5 segundo (alternativa)"}.</p>
      {isTest&&<p className="mx-3 mb-2 rounded-md border border-amber-400/40 bg-amber-400/10 p-2 text-xs font-bold text-amber-300">MODO TESTE · COTAÇÕES HISTÓRICAS · NÃO SÃO DADOS AO VIVO</p>}
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
