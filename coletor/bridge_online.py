@@ -100,7 +100,7 @@ def main():
                 print("403: verificar regras WAF / segurança do Worker; o envio manual anterior funcionou.")
         except Exception as exc:
             print("Falha no envio:", type(exc).__name__, str(exc))
-        time.sleep(3)
+        time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
