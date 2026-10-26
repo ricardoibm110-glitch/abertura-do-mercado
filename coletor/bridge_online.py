@@ -7,6 +7,7 @@ import json
 import os
 import time
 import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -75,12 +76,14 @@ def load_rows():
 
 def main():
     print("Bridge online iniciada. Ctrl+C para parar.")
+    print("Pasta CSV:", CSV_DIR)
+    print("Servidor:", URL)
     last_payload = None
     while True:
         try:
             rows = load_rows()
             if rows:
-                payload = json.dumps({"mode": "REAL", "rows": rows}, separators=(",", ":")).encode()
+                payload = json.dumps({"mode": "REAL", "rows": rows}).encode("utf-8")
                 if payload != last_payload:
                     req = urllib.request.Request(URL + "/ingest", data=payload, headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}, method="POST")
                     with urllib.request.urlopen(req, timeout=10) as response:
@@ -90,8 +93,13 @@ def main():
                     print("Enviado:", rows[0]["capturedAt"], rows[0]["contract"], rows[1]["contract"])
             else:
                 print("Aguardando CSV atualizado dos dois ativos...")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")[:500]
+            print("Falha no envio: HTTP", exc.code, "| resposta:", body, "| CF-RAY:", exc.headers.get("CF-RAY"))
+            if exc.code == 403:
+                print("403: verificar regras WAF / segurança do Worker; o envio manual anterior funcionou.")
         except Exception as exc:
-            print("Falha no envio:", exc)
+            print("Falha no envio:", type(exc).__name__, str(exc))
         time.sleep(3)
 
 if __name__ == "__main__":
