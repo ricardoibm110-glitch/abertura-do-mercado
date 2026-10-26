@@ -10,16 +10,20 @@ export function LiveMarketPanel(){
  useEffect(()=>{
    if(!endpoint)return;
    let active=true;
+   let busy=false;
    const read=async()=>{
+     if(busy)return;
+     busy=true;
      try{
        const response=await fetch(endpoint+"/latest",{cache:"no-store"});
        if(!response.ok)throw new Error("Servidor indisponível ("+response.status+")");
        const data=await response.json() as Payload;
        if(active){setState(data);setError("");}
      }catch(e){if(active){setError(e instanceof Error?e.message:"Falha de conexão");setState(null);}}
+     finally{busy=false;}
    };
    void read();
-   const id=setInterval(()=>void read(),5000);
+   const id=setInterval(()=>void read(),500);
    return()=>{active=false;clearInterval(id)};
  },[]);
  const received=state?.receivedAt?Date.parse(state.receivedAt):0;
@@ -38,7 +42,7 @@ export function LiveMarketPanel(){
      <span className={`text-[10px] font-bold ${fresh&&!error&&!isTest?"text-emerald-400":"text-amber-300"}`}>{status}</span>
    </div>
    {!endpoint?<p className="px-3 py-3 text-xs text-amber-300">Servidor ainda não configurado. Defina VITE_MARKET_API_URL no deploy do site.</p>:<>
-     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · atualização a cada 5 segundos.</p>
+     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · consulta a cada 0,5 segundo (sujeita à latência da rede e do servidor).</p>
      {isTest&&<p className="mx-3 mb-2 rounded-md border border-amber-400/40 bg-amber-400/10 p-2 text-xs font-bold text-amber-300">MODO TESTE · COTAÇÕES HISTÓRICAS · NÃO SÃO DADOS AO VIVO</p>}
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
