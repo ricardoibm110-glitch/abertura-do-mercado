@@ -30,7 +30,8 @@ export function LiveMarketPanel(){
  const valid=(row:Row|undefined)=>Boolean(row&&Date.now()-Date.parse(row.capturedAt)<15000);
  const isTest=state?.mode==="TESTE";
  const status=error?"ERRO":!state?"AGUARDANDO DADOS":isTest?"TESTE HISTÓRICO":!fresh?"DADOS ATRASADOS":"CONECTADO";
- const showRow=(row:Row|undefined)=>Boolean(row&&(isTest||fresh&&valid(row)));
+ const showRow=(row:Row|undefined)=>Boolean(row);
+ const rowFresh=(row:Row|undefined)=>Boolean(row&&fresh&&valid(row));
  return <section className="min-w-0 overflow-hidden rounded-xl border border-sky-500/30 bg-[#091720]">
    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0e222b] px-3 py-2">
      <b className="text-xs">Conexão Profit · WIN + IND</b>
@@ -42,11 +43,12 @@ export function LiveMarketPanel(){
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
        {[win,ind].map((row,i)=><div key={i} className="rounded-lg border border-white/10 bg-[#11232c] p-3">
-         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={showRow(row)?"text-emerald-400":"text-amber-300"}>{showRow(row)?(isTest?"HISTÓRICO":"RECEBENDO"):"SEM DADOS ATUAIS"}</span></div>
+         <div className="flex justify-between text-xs"><b>{row?.contract??(i===0?"WIN":"IND")}</b><span className={rowFresh(row)&&!isTest?"text-emerald-400":"text-amber-300"}>{!row?"SEM DADOS":isTest?"HISTÓRICO":rowFresh(row)?"RECEBENDO":"ATRASADO"}</span></div>
          <p className="mt-2 text-xl font-bold">{showRow(row)?fmt(row?.last):"—"}</p>
          <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400"><span>Teórico: {showRow(row)?fmt(row?.indicative):"—"}</span><span>Qtd. teórica: {showRow(row)?fmt(row?.theoreticalVolume):"—"}</span><span>Fechamento: {showRow(row)?fmt(row?.previousClose):"—"}</span><span>Hora feed: {showRow(row)?row?.marketTime:"—"}</span></div>
        </div>)}
      </div>
+     {state?.receivedAt&&<p className="px-3 pb-2 text-[11px] text-slate-400">Último recebimento na Cloudflare: {new Date(state.receivedAt).toLocaleString("pt-BR")} · {fresh?"recente":"atrasado"}. Valores atrasados são exibidos apenas para diagnóstico, não para operação.</p>}
      <p className="border-t border-white/10 px-3 py-2 text-[10px] text-slate-400">Leitura automática. Dados públicos até implementação de autenticação na API. Sem book completo, não há cálculo de pressão real nem sinais operacionais.</p>
    </>}
  </section>;
