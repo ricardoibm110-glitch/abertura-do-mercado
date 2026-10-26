@@ -13,7 +13,7 @@ export function LiveMarketPanel(){
    const read=async()=>{
      try{
        const response=await fetch(endpoint+"/latest",{cache:"no-store"});
-       if(!response.ok)throw new Error("Servidor indisponível ("+response.status+")"");
+       if(!response.ok)throw new Error("Servidor indisponível ("+response.status+")");
        const data=await response.json() as Payload;
        if(active){setState(data);setError("");}
      }catch(e){if(active){setError(e instanceof Error?e.message:"Falha de conexão");setState(null);}}
