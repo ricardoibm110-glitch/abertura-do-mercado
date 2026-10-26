@@ -1,4 +1,4 @@
-// Cloudflare Worker + KV. Configure MARKET_KV, INGEST_TOKEN, VIEW_TOKEN, ALLOWED_ORIGIN.
+// Cloudflare Worker + KV. Configure MARKET_KV, INGEST_TOKEN, ALLOWED_ORIGIN. GET /latest is public until login is implemented.
 // Never put tokens in frontend source, git, or URL query parameters.
 const reply=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...headers}});
 const safe=(v)=>typeof v==="number"&&Number.isFinite(v)?v:null;
@@ -8,7 +8,7 @@ export default {async fetch(request,env){
  if(request.method==="OPTIONS")return new Response(null,{status:origin===env.ALLOWED_ORIGIN?204:403,headers:cors});
  const url=new URL(request.url);
  if(url.pathname==="/health")return reply({ok:true},200,cors);
- if(!env.INGEST_TOKEN||!env.VIEW_TOKEN||!env.MARKET_KV)return reply({error:"Servidor não configurado"},503,cors);
+ if(!env.INGEST_TOKEN||!env.MARKET_KV)return reply({error:"Servidor não configurado"},503,cors);
  const auth=request.headers.get("Authorization")||"";
  if(url.pathname==="/ingest"&&request.method==="POST"){
    if(auth!==`Bearer ${env.INGEST_TOKEN}`)return reply({error:"Não autorizado"},401,cors);
@@ -29,7 +29,6 @@ export default {async fetch(request,env){
    return reply({ok:true},200,cors);
  }
  if(url.pathname==="/latest"&&request.method==="GET"){
-   if(auth!==`Bearer ${env.VIEW_TOKEN}`)return reply({error:"Não autorizado"},401,cors);
    const state=await env.MARKET_KV.get("latest","json");
    return reply(state||{receivedAt:null,rows:{}},200,cors);
  }
