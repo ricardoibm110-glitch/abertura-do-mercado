@@ -36,7 +36,7 @@ export function LiveMarketPanel(){
      finally{busy=false;}
    };
    void read();
-   const id=setInterval(()=>void read(),500);
+   const id=setInterval(()=>void read(),250);
    return()=>{active=false;clearInterval(id);if(retry)clearTimeout(retry);socket?.close()};
  },[]);
  const received=state?.receivedAt?Date.parse(state.receivedAt):0;
@@ -55,7 +55,7 @@ export function LiveMarketPanel(){
      <span className={`text-[10px] font-bold ${fresh&&!error&&!isTest?"text-emerald-400":"text-amber-300"}`}>{status}</span>
    </div>
    {!endpoint?<p className="px-3 py-3 text-xs text-amber-300">Servidor ainda não configurado. Defina VITE_MARKET_API_URL no deploy do site.</p>:<>
-     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · {transport==="WebSocket"?"transmissão WebSocket em tempo real":"consulta HTTP a cada 0,5 segundo (alternativa)"}.</p>
+     <p className="px-3 py-2 text-xs text-slate-400">Conexão automática · {transport==="WebSocket"?"transmissão WebSocket em tempo real":"consulta HTTP a cada 0,25 segundo (alternativa)"}.</p>
      {isTest&&<p className="mx-3 mb-2 rounded-md border border-amber-400/40 bg-amber-400/10 p-2 text-xs font-bold text-amber-300">MODO TESTE · COTAÇÕES HISTÓRICAS · NÃO SÃO DADOS AO VIVO</p>}
      {error&&<p className="px-3 pb-2 text-xs text-rose-400">{error}</p>}
      <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
